@@ -1,0 +1,28 @@
+{
+  "name": "natours",
+  "version": "1.0.0",
+  "description": "natours is my first backend project using Node.js, Express, MongoDB",
+  "keywords": [
+    "backend",
+    "nodejs",
+    "express",
+    "MongoDB"
+  ],
+  "homepage": "https://github.com/toony10/natours#readme",
+  "bugs": {
+    "url": "https://github.com/toony10/natours/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toony10/natours.git"
+  },
+  "license": "ISC",
+  "author": "Anton amir",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "start": "node dist/app.js"
+  }
+}
