@@ -1,13 +1,29 @@
 import express from 'express';
 import fs from 'fs';
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 const app = express();
+
 app.use(express.json());
+
+app.use(
+    (req: Request, res: Response, next: NextFunction) => {
+        console.log('Hello from the middleware');
+        next();
+    }
+);
+
+app.use(
+    (req: Request, res: Response, next: NextFunction) => {
+        req.requestTime = new Date().toISOString();
+        next();
+    }
+)
 const tours = JSON.parse(
   fs.readFileSync(`${__dirname}/dev-data/data/tours-simple.json`, 'utf-8'),
 );
 
 const getAllTours = (req: Request, res: Response) => {
+  console.log(req.requestTime);
   res.status(200).json({
     status: 'success',
     results: tours.length,
