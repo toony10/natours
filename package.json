@@ -22,15 +22,17 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "dev": "concurrently \"tsc -w\" \"nodemon dist/app.js\""
+    "dev": "concurrently \"tsc -w\" \"nodemon dist/server.js\""
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
+    "@types/morgan": "^1.9.10",
     "@types/node": "^25.0.10",
     "concurrently": "^9.2.1",
     "nodemon": "^3.1.11"
   },
   "dependencies": {
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "morgan": "^1.10.1"
   }
 }
