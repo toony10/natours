@@ -1,12 +1,34 @@
 import { Request, Response } from 'express';
 import fs from 'fs';
 
+
 const tours = JSON.parse(
   fs.readFileSync(`${__dirname}/../dev-data/data/tours-simple.json`, 'utf-8'),
 );
 
+export const checkID = (req: Request, res: Response, next: Function, val: string) => {
+    const id = Number(req.params.id);
+    console.log(`Tour id is: ${val}`);
+    if (isNaN(id) || id <= 0 || id > tours.length) {
+        return res.status(404).json({
+            status: 'fail',
+            message: 'Invalid ID'
+        });
+    }
+    next();
+}
+
+export const checkBody = (req: Request, res: Response, next: Function) => {
+    if (!req.body.name || !req.body.price) {
+        return res.status(400).json({
+            status: 'fail',
+            message: 'Missing name or price'
+        });
+    }
+    next();
+}
+
 export const getAllTours = (req: Request, res: Response) => {
-  console.log(req.requestTime);
   res.status(200).json({
     status: 'success',
     results: tours.length,
@@ -40,12 +62,7 @@ export const createTour = (req: Request, res: Response) => {
 export const getTour = (req: Request, res: Response) => {
     const id = Number(req.params.id);
     const tour = tours.find((tour: any) => tour.id === id);
-    if (!tour) {
-        return res.status(404).json({
-            status: 'fail',
-            message: 'Invalid ID'
-        });
-    }
+
   res.status(200).json({
     status: 'success',
     data: {
@@ -57,12 +74,7 @@ export const getTour = (req: Request, res: Response) => {
 export const updateTour =  (req: Request, res: Response) => { 
     const id = Number(req.params.id);
     const tour = tours.find((tour: any) => tour.id === id);
-    if (!tour) {
-        return res.status(404).json({
-            status: 'fail',
-            message: 'Invalid ID'
-        });
-    }
+    
     Object.assign(tour, req.body);
     fs.writeFile(`${__dirname}/dev-data/data/tours-simple.json`, JSON.stringify(tours), (err) => {
         if (err) {
@@ -84,13 +96,7 @@ export const updateTour =  (req: Request, res: Response) => {
 
 export const deleteTour = (req: Request, res: Response) => {
     const id = Number(req.params.id);
-    const tour = tours.find((tour: any) => tour.id === id);
-    if (!tour) {
-        return res.status(404).json({
-            status: 'fail',
-            message: 'Invalid ID'
-        });
-    }
+
     const newTours = tours.filter((tour: any) => tour.id !== id);
     fs.writeFile(`${__dirname}/dev-data/data/tours-simple.json`, JSON.stringify(newTours), (err) => {
         if (err) {
