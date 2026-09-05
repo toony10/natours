@@ -5,7 +5,6 @@ import {
     getTour,
     updateTour,
     deleteTour,
-    checkBody
 } from '../controllers/tourController';
 
 /* 1) ROUTER */
@@ -15,7 +14,7 @@ export const router = express.Router();
 /* 2) ROUTES */
 router.route('/')
 .get(getAllTours)
-.post(checkBody, createTour);
+.post(createTour);
 
 router.route('/:id')
 .get(getTour)

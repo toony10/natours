@@ -1,19 +1,20 @@
 import { Request, Response } from 'express';
 import { Tour } from '../models/toure.model';
 
-export const checkBody = (req: Request, res: Response, next: Function) => {
-    if (!req.body.name || !req.body.price) {
-        return res.status(400).json({
-            status: 'fail',
-            message: 'Missing name or price'
-        });
-    }
-    next();
-}
-
 export const getAllTours = async (req: Request, res: Response) => {
     try {
-    const tours = await Tour.find();
+        // Create the query object
+        const queryObj = { ...req.query };
+        const excludedFields = ['page', 'sort', 'limit', 'fields'];
+        excludedFields.forEach(el => delete queryObj[el]);
+
+        // advanced filtering
+        let queryStr = JSON.stringify(queryObj);
+        queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
+        const queryObjParsed = JSON.parse(queryStr);
+        console.log(queryObjParsed);
+        
+    const tours = await Tour.find(queryObjParsed);
     res.status(200).json({
         status: 'success',
         results: tours.length,

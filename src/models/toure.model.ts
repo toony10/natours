@@ -38,7 +38,7 @@ const toureSchema = new mongoose.Schema({
     type: Number,
     required: [true, 'A tour must have a price'],
   },
-  summary: {  
+  summary: {
     type: String,
     trim: true,
     required: [true, 'A tour must have a summary'],
@@ -53,6 +53,35 @@ const toureSchema = new mongoose.Schema({
   },
   images: [String],
   startDates: [Date],
+  startLocation: {
+    type: {
+      type: String,
+      enum: ['Point'],
+    },
+    coordinates: [Number],
+    address: String,
+    description: String,
+  },
+  locations: [
+    {
+      type: {
+        type: String,
+        enum: ['Point'],
+      },
+      coordinates: [Number],
+      address: String,
+      description: String,
+      day: Number,
+    },
+  ],
+  guides: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+  ],
 });
+
+toureSchema.index({ startLocation: '2dsphere' });
 
 export const Tour = mongoose.model('Tour', toureSchema);
