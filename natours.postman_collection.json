@@ -1,0 +1,257 @@
+{
+  "info": {
+    "_postman_id": "7c0f3c2f-9d2c-4f84-bc8f-5a0cf7f7c8b7",
+    "name": "Natours API",
+    "description": "Postman collection for the Natours Express API. Import this file into Postman and run the local server with `npm run dev` before sending requests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Tours",
+      "item": [
+        {
+          "name": "Get All Tours",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tours",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tours"]
+            },
+            "description": "Returns all tours. Supports filtering, sorting, field limiting, and pagination."
+          }
+        },
+        {
+          "name": "Get Tours - Filter Sort Fields Pagination",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tours?difficulty=easy&price[lt]=500&sort=price,-ratingsAverage&fields=name,price,ratingsAverage,difficulty&page=1&limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tours"],
+              "query": [
+                {
+                  "key": "difficulty",
+                  "value": "easy"
+                },
+                {
+                  "key": "price[lt]",
+                  "value": "500"
+                },
+                {
+                  "key": "sort",
+                  "value": "price,-ratingsAverage"
+                },
+                {
+                  "key": "fields",
+                  "value": "name,price,ratingsAverage,difficulty"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Example query using the controller's supported query features."
+          }
+        },
+        {
+          "name": "Get Tour By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tours/{{tourId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tours", "{{tourId}}"]
+            },
+            "description": "Gets one tour by MongoDB ObjectId. The default `tourId` variable points to a sample dev-data tour."
+          }
+        },
+        {
+          "name": "Create Tour",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json && json.data && json.data.tour && json.data.tour._id) {",
+                  "  pm.collectionVariables.set('tourId', json.data.tour._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"The Test Explorer {{$timestamp}}\",\n  \"duration\": 4,\n  \"maxGroupSize\": 12,\n  \"difficulty\": \"easy\",\n  \"ratingsAverage\": 4.7,\n  \"ratingsQuantity\": 8,\n  \"price\": 299,\n  \"summary\": \"A short test tour created from Postman.\",\n  \"description\": \"Use this tour to test create, update, and delete endpoints.\",\n  \"imageCover\": \"tour-1-cover.jpg\",\n  \"images\": [\n    \"tour-1-1.jpg\",\n    \"tour-1-2.jpg\"\n  ],\n  \"startDates\": [\n    \"2026-06-19T09:00:00.000Z\",\n    \"2026-07-20T09:00:00.000Z\"\n  ],\n  \"startLocation\": {\n    \"type\": \"Point\",\n    \"coordinates\": [\n      -80.185942,\n      25.774772\n    ],\n    \"address\": \"301 Biscayne Blvd, Miami, FL 33132, USA\",\n    \"description\": \"Miami, USA\"\n  },\n  \"locations\": [\n    {\n      \"type\": \"Point\",\n      \"coordinates\": [\n        -80.128473,\n        25.781842\n      ],\n      \"description\": \"Lummus Park Beach\",\n      \"day\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tours",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tours"]
+            },
+            "description": "Creates a tour. The test script stores the returned `_id` in the `tourId` collection variable."
+          }
+        },
+        {
+          "name": "Update Tour",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 349,\n  \"ratingsAverage\": 4.9\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tours/{{tourId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tours", "{{tourId}}"]
+            },
+            "description": "Updates a tour by MongoDB ObjectId."
+          }
+        },
+        {
+          "name": "Delete Tour",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/tours/{{tourId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "tours", "{{tourId}}"]
+            },
+            "description": "Deletes a tour by MongoDB ObjectId."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "Only `Get All Users` currently returns real data. The create, read-by-id, update, and delete handlers are currently stubbed and return 500.",
+      "item": [
+        {
+          "name": "Get All Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Returns users from `src/dev-data/data/users.json`."
+          }
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "{{userId}}"]
+            },
+            "description": "Currently returns 500 because the controller is not yet implemented."
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"test@example.com\",\n  \"role\": \"user\",\n  \"active\": true,\n  \"photo\": \"default.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Currently returns 500 because the controller is not yet implemented."
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Test User\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "{{userId}}"]
+            },
+            "description": "Currently returns 500 because the controller is not yet implemented."
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "{{userId}}"]
+            },
+            "description": "Currently returns 500 because the controller is not yet implemented."
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:3000",
+      "type": "string"
+    },
+    {
+      "key": "tourId",
+      "value": "5c88fa8cf4afda39709c2955",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "5c8a1d5b0190b214360dc057",
+      "type": "string"
+    }
+  ]
+}

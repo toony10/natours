@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { Tour } from '../models/toure.model';
 
 export const getAllTours = async (req: Request, res: Response) => {
@@ -31,12 +31,30 @@ export const getAllTours = async (req: Request, res: Response) => {
         } else {
             query = query.select('-__v');
         }
+
+        // Pagination
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const skip = (page - 1) * limit;
+        query = query.skip(skip).limit(limit);
+        const total = await Tour.countDocuments();
+        const totalpages = Math.ceil(total / limit);
+        if (req.query.page) {
+            if (skip >= total) throw new Error('This page does not exist');
+        }
+
     const tours = await query;
     res.status(200).json({
         status: 'success',
         results: tours.length,
         data: {
-            tours
+            tours,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalpages,
+            }
         }
   });
 } catch (err) {
@@ -46,6 +64,13 @@ export const getAllTours = async (req: Request, res: Response) => {
         error: (err as Error).message
     });
 }
+}
+
+export const aliasTopTours = async (req: Request, res: Response, next: NextFunction) => { 
+    req.query.limit = "5";
+    req.query.sort = "-ratingsAverage,price";
+    req.query.fildes = "name,price,ratingsAverage,summary,difficulty";
+    next();
 }
 
 export const createTour = async (req: Request, res: Response) => {
