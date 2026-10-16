@@ -1,62 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { Tour } from '../models/toure.model';
-import { Query } from "mongoose";
-import { ParsedQs } from "qs";
-
-class APIFeatures {
-    public page = 1;
-    public limit = 10;
-    constructor(public query: Query<any, any>,
-        public queryString: ParsedQs) { }
-    
-    // Filtering
-    filter() { 
-        const queryObj = { ...this.queryString };
-        const excludedFields = ['page', 'sort', 'limit', 'fields'];
-        excludedFields.forEach(el => delete queryObj[el]);
-
-        // Advanced filtering
-        let queryStr = JSON.stringify(queryObj);
-        queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${ match }`);
-        this.query = this.query.find(JSON.parse(queryStr));
-
-        return this;
-    }
-
-    sort() {
-         if (this.queryString.sort) { 
-            const sortBy = (this.queryString.sort as string).split(',').join(' ');
-            console.log('sort by',sortBy);
-            this.query = this.query.sort(sortBy);
-        }else {
-            this.query = this.query.sort('-createdAt');
-        }
-        return this;
-    }
-
-    limitFields() { 
-        if (this.queryString.fields) {
-            const fields = (this.queryString.fields as string).split(',').join(' ');
-            console.log('fields',fields);
-            this.query = this.query.select(fields);
-        } else {
-            this.query = this.query.select('-__v');
-        }
-
-        return this;
-    }
-
-    paginate() {
-        this.page = parseInt(this.queryString.page as string) || 1;
-        this.limit = parseInt(this.queryString.limit as string) || 10;
-
-        const skip = (this.page - 1) * this.limit;
-
-        this.query = this.query.skip(skip).limit(this.limit);
-
-        return this;
-    }
-}
+import {APIFeatures} from '../utils/apiFeatures';
 
 export const getAllTours = async (req: Request, res: Response) => {
     try {
@@ -91,6 +35,40 @@ export const getAllTours = async (req: Request, res: Response) => {
         error: (err as Error).message
     });
 }
+}
+
+export const getTourStats = async (req: Request, res: Response) => { 
+    try { 
+        const stats = await Tour.aggregate([
+            {
+                $match: { ratingsAverage: { $gte: 4.5 } }
+            },
+            {
+                $group: {
+                    _id: null,
+                    numTours: { $sum: 1 },
+                    numRatings: { $sum: '$ratingsQuantity' },
+                    avgRating: { $avg: '$ratingsAverage' },
+                    avgPrice: { $avg: '$price' },
+                    maxPrice: { $max: '$price' },
+                    minPrice: { $min: '$price' }
+                }
+            }
+        ]);
+        
+        res.status(200).json({
+            status: 'success',
+            data: {
+                stats
+            }
+        });
+    }catch (err) {
+        res.status(404).json({
+            status: 'error',
+            message: 'No stats found',
+            error: (err as Error).message
+        });
+    }
 }
 
 export const aliasTopTours = async (req: Request, res: Response, next: NextFunction) => { 

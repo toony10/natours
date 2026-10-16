@@ -5,7 +5,8 @@ import {
     getTour,
     updateTour,
     deleteTour,
-    aliasTopTours
+    aliasTopTours,
+    getTourStats
 } from '../controllers/tourController';
 
 /* 1) ROUTER */
@@ -18,6 +19,8 @@ router.route('/top-5-cheap').get(aliasTopTours, getAllTours);
 router.route('/')
 .get(getAllTours)
 .post(createTour);
+
+router.route('/tour-stats').get(getTourStats);
 
 router.route('/:id')
 .get(getTour)
