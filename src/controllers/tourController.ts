@@ -1,59 +1,86 @@
 import { NextFunction, Request, Response } from 'express';
 import { Tour } from '../models/toure.model';
+import { Query } from "mongoose";
+import { ParsedQs } from "qs";
 
-export const getAllTours = async (req: Request, res: Response) => {
-    try {
-        // Create the query object
-        const queryObj = { ...req.query };
+class APIFeatures {
+    public page = 1;
+    public limit = 10;
+    constructor(public query: Query<any, any>,
+        public queryString: ParsedQs) { }
+    
+    // Filtering
+    filter() { 
+        const queryObj = { ...this.queryString };
         const excludedFields = ['page', 'sort', 'limit', 'fields'];
         excludedFields.forEach(el => delete queryObj[el]);
 
         // Advanced filtering
         let queryStr = JSON.stringify(queryObj);
-        queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${match}`);
+        queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, match => `$${ match }`);
+        this.query = this.query.find(JSON.parse(queryStr));
 
-        let query = Tour.find(JSON.parse(queryStr));
+        return this;
+    }
 
-        // Sorting
-        if (req.query.sort) { 
-            const sortBy = (req.query.sort as string).split(',').join(' ');
+    sort() {
+         if (this.queryString.sort) { 
+            const sortBy = (this.queryString.sort as string).split(',').join(' ');
             console.log('sort by',sortBy);
-            query = query.sort(sortBy);
+            this.query = this.query.sort(sortBy);
         }else {
-            query = query.sort('-createdAt');
+            this.query = this.query.sort('-createdAt');
         }
+        return this;
+    }
 
-        // Field limiting
-        if (req.query.fields) {
-            const fields = (req.query.fields as string).split(',').join(' ');
+    limitFields() { 
+        if (this.queryString.fields) {
+            const fields = (this.queryString.fields as string).split(',').join(' ');
             console.log('fields',fields);
-            query = query.select(fields);
+            this.query = this.query.select(fields);
         } else {
-            query = query.select('-__v');
+            this.query = this.query.select('-__v');
         }
 
-        // Pagination
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
-        const skip = (page - 1) * limit;
-        query = query.skip(skip).limit(limit);
-        const total = await Tour.countDocuments();
-        const totalpages = Math.ceil(total / limit);
-        if (req.query.page) {
-            if (skip >= total) throw new Error('This page does not exist');
-        }
+        return this;
+    }
 
-    const tours = await query;
+    paginate() {
+        this.page = parseInt(this.queryString.page as string) || 1;
+        this.limit = parseInt(this.queryString.limit as string) || 10;
+
+        const skip = (this.page - 1) * this.limit;
+
+        this.query = this.query.skip(skip).limit(this.limit);
+
+        return this;
+    }
+}
+
+export const getAllTours = async (req: Request, res: Response) => {
+    try {
+    const features = new APIFeatures(Tour.find(), req.query)
+        .filter()
+        .sort()
+        .limitFields()
+        .paginate();
+        
+        const tours = await features.query;
+        
+        const total = await Tour.countDocuments(features.query.getFilter());
+        const totalpages = Math.ceil(total / features.limit);
+        
     res.status(200).json({
         status: 'success',
         results: tours.length,
         data: {
             tours,
             pagination: {
-                page,
-                limit,
-                total,
-                totalpages,
+              page: features.page,
+              limit: features.limit,
+              total: total,
+              totalpages: totalpages,
             }
         }
   });
