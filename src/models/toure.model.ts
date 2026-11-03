@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import slugify from 'slugify';
 
 const toureSchema = new mongoose.Schema({
   name: {
@@ -6,14 +7,19 @@ const toureSchema = new mongoose.Schema({
     required: [true, 'A tour must have a name'],
     unique: [true, 'A tour must have a unique name'],
     trim: true,
+    minlength: [5, 'A tour name must have at least 5 characters'],
+    maxlength: [40, 'A tour name must have at most 40 characters'],
   },
+  slug: String,
   duration: {
     type: Number,
     required: [true, 'A tour must have a duration'],
+    min: [1, 'Duration must be at least 1 day'],
   },
   maxGroupSize: {
     type: Number,
     required: [true, 'A tour must have a group size'],
+    min: [1, 'Group size must be at least 1'],
   },
   difficulty: {
     type: String,
@@ -37,11 +43,13 @@ const toureSchema = new mongoose.Schema({
   price: {
     type: Number,
     required: [true, 'A tour must have a price'],
+    min: [0, 'Price cannot be negative'],
   },
   summary: {
     type: String,
     trim: true,
     required: [true, 'A tour must have a summary'],
+    maxlength: [200, 'A summary must have at most 200 characters'],
   },
   description: {
     type: String,
@@ -53,6 +61,10 @@ const toureSchema = new mongoose.Schema({
   },
   images: [String],
   startDates: [Date],
+  secretTour: {
+    type: Boolean,
+    default: false,
+  },
   startLocation: {
     type: {
       type: String,
@@ -79,7 +91,36 @@ const toureSchema = new mongoose.Schema({
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
     },
-  ],
+  ]
+},
+ {
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
+);
+
+toureSchema.virtual('durationWeeks').get(function (this: any) {
+  return Math.round(this.duration / 7 * 10) / 10;
+});
+
+
+//Document Middleware: runs before .save() and .create() but not on .insertMany()
+// toureSchema.pre('save', function (next) {
+//   this.slug = slugify(this.name, { lower: true });
+// });
+
+// toureSchema.post('save', function (doc) {
+//   console.log(`This is Created ${doc}`);
+// });
+  
+
+// Query Middleware: runs before and after any find query
+toureSchema.pre(/^find/, function (this: mongoose.Query<any, any>) {
+  this.find({ secretTour: { $ne: false } });
+});
+
+toureSchema.post(/^find/, function (this: mongoose.Query<any, any>, docs: any) {
+  console.log(`docs: ${docs}`);
 });
 
 toureSchema.index({ startLocation: '2dsphere' });
