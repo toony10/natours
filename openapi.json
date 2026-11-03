@@ -1,0 +1,551 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Natours API",
+    "description": "Natours backend built with Node.js, Express and MongoDB. Generated from src/routes, src/controllers and src/models.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:3000/api/v1",
+      "description": "Local dev server"
+    }
+  ],
+  "tags": [
+    { "name": "Tours", "description": "Tour CRUD, filtering and stats" },
+    { "name": "Users", "description": "User routes (only GET /users is implemented)" }
+  ],
+  "paths": {
+    "/tours": {
+      "get": {
+        "tags": ["Tours"],
+        "summary": "Get all tours",
+        "description": "Supports filtering, sorting, field limiting and pagination. Any tour field can be used as a filter, and numeric fields accept the operators [gte], [gt], [lte], [lt] (e.g. `price[lte]=1000`). Defaults: sorted by `-createdAt`, `__v` excluded, page 1, limit 10.",
+        "operationId": "getAllTours",
+        "parameters": [
+          { "$ref": "#/components/parameters/Page" },
+          { "$ref": "#/components/parameters/Limit" },
+          { "$ref": "#/components/parameters/Sort" },
+          { "$ref": "#/components/parameters/Fields" },
+          {
+            "name": "difficulty",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["easy", "medium", "difficult"] },
+            "example": "easy"
+          },
+          { "name": "duration", "in": "query", "schema": { "type": "number" }, "description": "Exact duration in days" },
+          { "name": "duration[gte]", "in": "query", "schema": { "type": "number" }, "example": 5 },
+          { "name": "duration[lte]", "in": "query", "schema": { "type": "number" }, "example": 9 },
+          { "name": "price[gte]", "in": "query", "schema": { "type": "number" } },
+          { "name": "price[lte]", "in": "query", "schema": { "type": "number" }, "example": 1500 },
+          { "name": "ratingsAverage[gte]", "in": "query", "schema": { "type": "number" }, "example": 4.7 },
+          { "name": "ratingsAverage[lte]", "in": "query", "schema": { "type": "number" } },
+          { "name": "maxGroupSize[gte]", "in": "query", "schema": { "type": "number" } },
+          { "name": "maxGroupSize[lte]", "in": "query", "schema": { "type": "number" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/TourList" },
+          "404": {
+            "description": "Query failed (e.g. invalid filter value)",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": { "status": "error", "message": "No tours found", "error": "Cast to Number failed for value \"abc\"" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Tours"],
+        "summary": "Create a tour",
+        "operationId": "createTour",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TourInput" },
+              "example": {
+                "name": "The Desert Explorer",
+                "duration": 6,
+                "maxGroupSize": 12,
+                "difficulty": "medium",
+                "price": 1290,
+                "summary": "Sand dunes, oases and starry nights",
+                "imageCover": "tour-10-cover.jpg",
+                "images": ["tour-10-1.jpg", "tour-10-2.jpg"],
+                "startDates": ["2027-03-01T09:00:00.000Z"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tour created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": { "tour": { "$ref": "#/components/schemas/Tour" } }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Validation or duplicate-name error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": { "status": "error", "message": "Error creating tour", "error": "Tour validation failed: name: A tour must have a name" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tours/top-5-cheap": {
+      "get": {
+        "tags": ["Tours"],
+        "summary": "Top 5 tours (alias)",
+        "description": "Alias for GET /tours with limit=5, sort=-ratingsAverage,price and fields=name,price,ratingsAverage,summary,difficulty.",
+        "operationId": "getTopFiveTours",
+        "responses": {
+          "200": { "$ref": "#/components/responses/TourList" },
+          "404": {
+            "description": "Query failed",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+            }
+          }
+        }
+      }
+    },
+    "/tours/tour-stats": {
+      "get": {
+        "tags": ["Tours"],
+        "summary": "Tour statistics",
+        "description": "Aggregates tours with ratingsAverage >= 4.5 into a single group.",
+        "operationId": "getTourStats",
+        "responses": {
+          "200": {
+            "description": "Aggregated stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "stats": { "type": "array", "items": { "$ref": "#/components/schemas/TourStats" } }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "status": "success",
+                  "data": {
+                    "stats": [
+                      { "_id": null, "numTours": 7, "numRatings": 46, "avgRating": 4.73, "avgPrice": 1297.43, "maxPrice": 2997, "minPrice": 397 }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Aggregation failed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": { "status": "error", "message": "No stats found", "error": "..." }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tours/{id}": {
+      "parameters": [{ "$ref": "#/components/parameters/TourId" }],
+      "get": {
+        "tags": ["Tours"],
+        "summary": "Get a tour",
+        "operationId": "getTour",
+        "responses": {
+          "200": { "$ref": "#/components/responses/SingleTour" },
+          "404": {
+            "description": "No tour with that ID, or the ID is not a valid ObjectId",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "examples": {
+                  "notFound": { "value": { "status": "fail", "message": "No tour found with that ID" } },
+                  "invalidId": { "value": { "status": "error", "message": "No tour found", "error": "Cast to ObjectId failed for value \"abc\"" } }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Tours"],
+        "summary": "Update a tour",
+        "description": "Partial update with validators enabled. Note: an unknown but valid ID returns 200 with `tour: null`.",
+        "operationId": "updateTour",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/TourUpdate" },
+              "example": { "price": 999, "difficulty": "easy" }
+            }
+          }
+        },
+        "responses": {
+          "200": { "$ref": "#/components/responses/SingleTour" },
+          "404": {
+            "description": "Invalid ID or validation error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": { "status": "error", "message": "No tour found", "error": "Validation failed: difficulty: Difficulty is either: easy, medium, difficult" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Tours"],
+        "summary": "Delete a tour",
+        "operationId": "deleteTour",
+        "responses": {
+          "200": {
+            "description": "Tour deleted; the deleted document is returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "message": { "type": "string", "example": "Tour deleted successfully" },
+                    "data": {
+                      "type": "object",
+                      "properties": { "tour": { "$ref": "#/components/schemas/Tour" } }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No tour with that ID, or the ID is not a valid ObjectId",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": { "status": "fail", "message": "No tour found with that ID" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get all users",
+        "description": "Reads users from dev-data/data/users.json (not MongoDB).",
+        "operationId": "getAllUsers",
+        "responses": {
+          "200": {
+            "description": "List of users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "results": { "type": "integer", "example": 20 },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "users": { "type": "array", "items": { "$ref": "#/components/schemas/User" } }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Users"],
+        "summary": "Create a user (not implemented)",
+        "operationId": "createUser",
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/UserInput" } }
+          }
+        },
+        "responses": { "500": { "$ref": "#/components/responses/NotImplemented" } }
+      }
+    },
+    "/users/{id}": {
+      "parameters": [{ "$ref": "#/components/parameters/UserId" }],
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get a user (not implemented)",
+        "operationId": "getUser",
+        "responses": { "500": { "$ref": "#/components/responses/NotImplemented" } }
+      },
+      "patch": {
+        "tags": ["Users"],
+        "summary": "Update a user (not implemented)",
+        "operationId": "updateUser",
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/UserInput" } }
+          }
+        },
+        "responses": { "500": { "$ref": "#/components/responses/NotImplemented" } }
+      },
+      "delete": {
+        "tags": ["Users"],
+        "summary": "Delete a user (not implemented)",
+        "operationId": "deleteUser",
+        "responses": { "500": { "$ref": "#/components/responses/NotImplemented" } }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "TourId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "MongoDB ObjectId of the tour",
+        "schema": { "type": "string", "pattern": "^[a-fA-F0-9]{24}$" },
+        "example": "5c88fa8cf4afda39709c2951"
+      },
+      "UserId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" },
+        "example": "5c8a1d5b0190b214360dc057"
+      },
+      "Page": {
+        "name": "page",
+        "in": "query",
+        "schema": { "type": "integer", "minimum": 1, "default": 1 },
+        "example": 1
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "schema": { "type": "integer", "minimum": 1, "default": 10 },
+        "example": 10
+      },
+      "Sort": {
+        "name": "sort",
+        "in": "query",
+        "description": "Comma-separated fields; prefix with `-` for descending. Default `-createdAt`.",
+        "schema": { "type": "string" },
+        "example": "-price,ratingsAverage"
+      },
+      "Fields": {
+        "name": "fields",
+        "in": "query",
+        "description": "Comma-separated fields to include (or `-field` to exclude). Default excludes `__v`.",
+        "schema": { "type": "string" },
+        "example": "name,duration,ratingsAverage"
+      }
+    },
+    "responses": {
+      "TourList": {
+        "description": "Paginated list of tours",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": { "type": "string", "example": "success" },
+                "results": { "type": "integer", "example": 9 },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "tours": { "type": "array", "items": { "$ref": "#/components/schemas/Tour" } },
+                    "pagination": { "$ref": "#/components/schemas/Pagination" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "SingleTour": {
+        "description": "A single tour",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": { "type": "string", "example": "success" },
+                "data": {
+                  "type": "object",
+                  "properties": {
+                    "tour": {
+                      "type": "object",
+                      "allOf": [{ "$ref": "#/components/schemas/Tour" }],
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "NotImplemented": {
+        "description": "Route is not yet defined",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" },
+            "example": { "status": "error", "message": "This route is not yet defined" }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "GeoPoint": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["Point"] },
+          "coordinates": {
+            "type": "array",
+            "description": "[longitude, latitude]",
+            "items": { "type": "number" },
+            "example": [-115.570154, 51.178456]
+          },
+          "address": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      },
+      "TourLocation": {
+        "allOf": [
+          { "$ref": "#/components/schemas/GeoPoint" },
+          {
+            "type": "object",
+            "properties": {
+              "day": { "type": "integer", "example": 1 },
+              "_id": { "type": "string", "readOnly": true }
+            }
+          }
+        ]
+      },
+      "TourFields": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "description": "Unique, trimmed", "example": "The Forest Hiker" },
+          "duration": { "type": "number", "description": "Days", "example": 5 },
+          "maxGroupSize": { "type": "integer", "example": 25 },
+          "difficulty": { "type": "string", "enum": ["easy", "medium", "difficult"] },
+          "ratingsAverage": { "type": "number", "minimum": 1, "maximum": 5, "default": 4.5, "description": "Rounded to 1 decimal" },
+          "ratingsQuantity": { "type": "integer", "default": 0 },
+          "price": { "type": "number", "example": 397 },
+          "summary": { "type": "string" },
+          "description": { "type": "string" },
+          "imageCover": { "type": "string", "example": "tour-1-cover.jpg" },
+          "images": { "type": "array", "items": { "type": "string" } },
+          "startDates": { "type": "array", "items": { "type": "string", "format": "date-time" } },
+          "startLocation": { "$ref": "#/components/schemas/GeoPoint" },
+          "locations": { "type": "array", "items": { "$ref": "#/components/schemas/TourLocation" } },
+          "guides": {
+            "type": "array",
+            "description": "User ObjectIds",
+            "items": { "type": "string", "pattern": "^[a-fA-F0-9]{24}$" }
+          }
+        }
+      },
+      "TourInput": {
+        "allOf": [{ "$ref": "#/components/schemas/TourFields" }],
+        "required": ["name", "duration", "maxGroupSize", "difficulty", "price", "summary", "imageCover"]
+      },
+      "TourUpdate": {
+        "allOf": [{ "$ref": "#/components/schemas/TourFields" }],
+        "description": "Any subset of tour fields"
+      },
+      "Tour": {
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "_id": { "type": "string", "example": "5c88fa8cf4afda39709c2951" },
+              "id": { "type": "string", "description": "Virtual copy of _id" },
+              "durationWeeks": { "type": "number", "description": "Virtual: duration / 7, 1 decimal", "example": 0.7 }
+            }
+          },
+          { "$ref": "#/components/schemas/TourFields" }
+        ]
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "page": { "type": "integer", "example": 1 },
+          "limit": { "type": "integer", "example": 10 },
+          "total": { "type": "integer", "example": 9 },
+          "totalpages": { "type": "integer", "example": 1 }
+        }
+      },
+      "TourStats": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string", "nullable": true },
+          "numTours": { "type": "integer" },
+          "numRatings": { "type": "integer" },
+          "avgRating": { "type": "number" },
+          "avgPrice": { "type": "number" },
+          "maxPrice": { "type": "number" },
+          "minPrice": { "type": "number" }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string", "example": "5c8a1d5b0190b214360dc057" },
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "role": { "type": "string", "example": "user" },
+          "active": { "type": "boolean" },
+          "photo": { "type": "string", "example": "user-1.jpg" },
+          "password": { "type": "string", "description": "bcrypt hash (currently returned by the API)" }
+        }
+      },
+      "UserInput": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "email": { "type": "string", "format": "email" },
+          "photo": { "type": "string" },
+          "password": { "type": "string" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "enum": ["fail", "error"] },
+          "message": { "type": "string" },
+          "error": { "type": "string", "description": "Underlying error message, when present" }
+        },
+        "required": ["status", "message"]
+      }
+    }
+  }
+}

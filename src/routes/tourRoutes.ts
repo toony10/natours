@@ -5,21 +5,25 @@ import {
     getTour,
     updateTour,
     deleteTour,
-    checkID,
-    checkBody
+    aliasTopTours,
+    getTourStats
 } from '../controllers/tourController';
 
 /* 1) ROUTER */
 export const router = express.Router();
 
-router.param('id', checkID);
 
 /* 2) ROUTES */
+router.route('/top-5-cheap').get(aliasTopTours, getAllTours);
+
 router.route('/')
 .get(getAllTours)
-.post(checkBody, createTour);
+.post(createTour);
+
+router.route('/tour-stats').get(getTourStats);
 
 router.route('/:id')
 .get(getTour)
 .patch(updateTour)
 .delete(deleteTour);
+
