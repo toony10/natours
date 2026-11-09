@@ -22,7 +22,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
-    "dev": "concurrently \"tsc -w\" \"nodemon dist/server.js\""
+    "dev": "concurrently \"tsc -w\" \"nodemon dist/server.js\"",
+    "debug": "NDB_CARLO_ARGS='{\"args\":[\"--no-sandbox\"]}' ndb dist/server.js"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
@@ -30,6 +31,7 @@
     "@types/node": "^25.0.10",
     "concurrently": "^9.2.1",
     "dotenv": "^17.4.2",
+    "ndb": "^1.1.5",
     "nodemon": "^3.1.11"
   },
   "dependencies": {
