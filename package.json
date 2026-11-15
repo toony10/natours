@@ -20,7 +20,8 @@
   "author": "Anton amir",
   "main": "dist/app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "NODE_ENV=production node dist/server.js",
+    "test":"echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "dev": "concurrently \"tsc -w\" \"nodemon dist/server.js\"",
     "debug": "NDB_CARLO_ARGS='{\"args\":[\"--no-sandbox\"]}' ndb dist/server.js"
