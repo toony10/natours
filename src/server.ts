@@ -15,6 +15,13 @@ mongoose.connect(dbUrl as string)
   });
 
 const port: number = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-app.listen(port, '127.0.0.1', () => {
+const server = app.listen(port, '127.0.0.1', () => {
   console.log(`Server is running on port ${port}`);
+});
+
+process.on('unhandledRejection', (err: Error) => {
+  console.log('UNHANDLED REJECTION! 💥 Shutting down...');
+  server.close(() => {
+    process.exit(1);
+  });
 });
